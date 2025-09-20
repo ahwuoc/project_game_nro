@@ -30,7 +30,7 @@ public class GameLoopManager {
 
     // Configuration
     private static final int MAP_UPDATE_INTERVAL = 1000; // 1 giây
-    private static final int PLAYER_UPDATE_INTERVAL = 100; // 100ms
+    private static final int PLAYER_UPDATE_INTERVAL = 1000; // 1 giây (was 100ms - too fast!)
     private static final int SYSTEM_UPDATE_INTERVAL = 2000; // 2 giây
 
     private boolean isRunning = false;
@@ -153,7 +153,12 @@ public class GameLoopManager {
             if (players != null && !players.isEmpty()) {
                 for (Player player : players) {
                     if (player != null && !player.isBot) {
-                        player.update();
+                        // Throttle player updates to prevent spam
+                        long now = System.currentTimeMillis();
+                        if (player.lastUpdateTime == 0 || (now - player.lastUpdateTime) >= 1000) {
+                            player.update();
+                            player.lastUpdateTime = now;
+                        }
                     }
                 }
             }

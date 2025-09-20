@@ -31,6 +31,8 @@ import Dragon.server.io.MyKeyHandler;
 import Dragon.server.io.MySession;
 import Dragon.services.*;
 import Dragon.models.npc.NpcFactory;
+import Dragon.server.GameLoopManager;
+import Dragon.server.netty.NettyServerManager;
 import Dragon.utils.Logger;
 import Dragon.utils.TimeUtil;
 import Dragon.utils.Util;
@@ -73,8 +75,6 @@ public class ServerManager {
             if (Manager.LOCAL) {
                 return;
             }
-            GirlkunDB.executeUpdate("update account set last_time_login = '2000-01-01', "
-                    + "last_time_logout = '2001-01-01'");
         } catch (Exception e) {
             System.err.print("\nError at 310\n");
             e.printStackTrace();
@@ -167,6 +167,15 @@ public class ServerManager {
     }
 
     private void act() throws Exception {
+        // Check if Netty mode is enabled
+        if (NettyServerManager.isNettyModeEnabled()) {
+            Logger.log("ServerManager: Starting Netty server...");
+            NettyServerManager.getInstance().startNettyServer(PORT);
+            return;
+        }
+
+        // Traditional server startup
+        Logger.log("ServerManager: Starting traditional server...");
         GirlkunServer.gI().init().setAcceptHandler(new ISessionAcceptHandler() {
             @Override
             public void sessionInit(ISession is) {
@@ -409,14 +418,59 @@ public class ServerManager {
                         e.printStackTrace();
                         Dragon.utils.Logger.log("ServerManager: Failed to get GameLoop stats!");
                     }
-                } else if (line.equals("forceupdatemaps")) {
+                } else if (line.equals("netty")) {
                     try {
-                        Dragon.utils.Logger.log("ServerManager: Force updating maps...");
-                        GameLoopManager.getInstance().forceUpdateMaps();
-                        Dragon.utils.Logger.log("ServerManager: Maps updated successfully!");
+                        Dragon.utils.Logger.log("ServerManager: Netty Server Manager:");
+                        Dragon.utils.Logger.log(NettyServerManager.getInstance().getStats());
                     } catch (Exception e) {
                         e.printStackTrace();
-                        Dragon.utils.Logger.log("ServerManager: Failed to force update maps!");
+                        Dragon.utils.Logger.log("ServerManager: Failed to get Netty stats!");
+                    }
+                } else if (line.equals("enablenetty")) {
+                    try {
+                        Dragon.utils.Logger.log("ServerManager: Enabling Netty mode...");
+                        NettyServerManager.getInstance().enableNettyMode();
+                        Dragon.utils.Logger.log("ServerManager: Netty mode enabled! Restart server to use Netty.");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Dragon.utils.Logger.log("ServerManager: Failed to enable Netty mode!");
+                    }
+                } else if (line.equals("disablenetty")) {
+                    try {
+                        Dragon.utils.Logger.log("ServerManager: Disabling Netty mode...");
+                        NettyServerManager.getInstance().disableNettyMode();
+                        Dragon.utils.Logger.log(
+                                "ServerManager: Traditional mode enabled! Restart server to use traditional server.");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Dragon.utils.Logger.log("ServerManager: Failed to disable Netty mode!");
+                    }
+                } else if (line.equals("startnetty")) {
+                    try {
+                        Dragon.utils.Logger.log("ServerManager: Starting Netty server...");
+                        NettyServerManager.getInstance().startNettyServer(PORT);
+                        Dragon.utils.Logger.log("ServerManager: Netty server started!");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Dragon.utils.Logger.log("ServerManager: Failed to start Netty server!");
+                    }
+                } else if (line.equals("stopnetty")) {
+                    try {
+                        Dragon.utils.Logger.log("ServerManager: Stopping Netty server...");
+                        NettyServerManager.getInstance().stopNettyServer();
+                        Dragon.utils.Logger.log("ServerManager: Netty server stopped!");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Dragon.utils.Logger.log("ServerManager: Failed to stop Netty server!");
+                    }
+                } else if (line.equals("closeallnetty")) {
+                    try {
+                        Dragon.utils.Logger.log("ServerManager: Force closing all Netty connections...");
+                        NettyServerManager.getInstance().forceCloseAllConnections();
+                        Dragon.utils.Logger.log("ServerManager: All Netty connections closed!");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Dragon.utils.Logger.log("ServerManager: Failed to close Netty connections!");
                     }
                 }
             }

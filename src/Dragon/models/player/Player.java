@@ -268,6 +268,10 @@ public class Player {
     public int rateModifier;
     public boolean allowFullMapAccess = true;
 
+    // GameLoop optimization - throttle player updates
+    public long lastUpdateTime = 0;
+    public long lastSaveTime = 0;
+
     public Player() {
         lastTimeUseOption = System.currentTimeMillis();
         location = new Location();

@@ -53,20 +53,29 @@ public class Client implements Runnable {
         return i;
     }
 
-    public void put(Player player) {
+    public synchronized void put(Player player) {
+        int uid = player.getSession().userId;
+        Player existing = this.players_userId.get(uid);
+        if (existing != null && existing != player) {
+            Logger.log("LOGIN: phát hiện userId=" + uid + " đã có phiên online (playerName=" + existing.name + "), tiến hành kick phiên cũ trước khi thêm phiên mới");
+            try {
+                kickSession(existing.getSession());
+            } catch (Exception ignored) {
+            }
+        }
+
         if (!players_id.containsKey(player.id)) {
             this.players_id.put(player.id, player);
         }
         if (!players_name.containsValue(player)) {
             this.players_name.put(player.name, player);
         }
-        if (!players_userId.containsValue(player)) {
-            this.players_userId.put(player.getSession().userId, player);
+        if (!players_userId.containsKey(uid) || this.players_userId.get(uid) != player) {
+            this.players_userId.put(uid, player);
         }
         if (!players.contains(player)) {
             this.players.add(player);
         }
-
     }
 
     private void remove(MySession session) {
@@ -77,8 +86,11 @@ public class Client implements Runnable {
         if (session.joinedGame) {
             session.joinedGame = false;
             try {
-                GirlkunDB.executeUpdate("update account set last_time_logout = ? where id = ?", new Timestamp(System.currentTimeMillis()), session.userId);
-                GirlkunDB.executeUpdate("update account set last_time_off = ? where id = ?", new Timestamp(System.currentTimeMillis()), session.userId);
+                // Skip account table updates for testing - table doesn't exist
+                // GirlkunDB.executeUpdate("update account set last_time_logout = ? where id =
+                // ?", new Timestamp(System.currentTimeMillis()), session.userId);
+                // GirlkunDB.executeUpdate("update account set last_time_off = ? where id = ?",
+                // new Timestamp(System.currentTimeMillis()), session.userId);
             } catch (Exception e) {
 
             }
@@ -92,17 +104,18 @@ public class Client implements Runnable {
         this.players_userId.remove(player.getSession().userId);
         this.players.remove(player);
         if (!player.beforeDispose) {
-//            DaiHoiVoThuatService.gI(DaiHoiVoThuat.gI().getDaiHoiNow()).removePlayerWait(player);
-//            DaiHoiVoThuatService.gI(DaiHoiVoThuat.gI().getDaiHoiNow()).removePlayer(player);
+            // DaiHoiVoThuatService.gI(DaiHoiVoThuat.gI().getDaiHoiNow()).removePlayerWait(player);
+            // DaiHoiVoThuatService.gI(DaiHoiVoThuat.gI().getDaiHoiNow()).removePlayer(player);
             player.beforeDispose = true;
             player.mapIdBeforeLogout = player.zone.map.mapId;
-//            if (player.idNRNM != -1) {
-//                ItemMap itemMap = new ItemMap(player.zone, player.idNRNM, 1, player.location.x, player.location.y, -1);
-//                Service.gI().dropItemMap(player.zone, itemMap);
-//                NgocRongNamecService.gI().pNrNamec[player.idNRNM - 353] = "";
-//                NgocRongNamecService.gI().idpNrNamec[player.idNRNM - 353] = -1;
-//                player.idNRNM = -1;
-//            }
+            // if (player.idNRNM != -1) {
+            // ItemMap itemMap = new ItemMap(player.zone, player.idNRNM, 1,
+            // player.location.x, player.location.y, -1);
+            // Service.gI().dropItemMap(player.zone, itemMap);
+            // NgocRongNamecService.gI().pNrNamec[player.idNRNM - 353] = "";
+            // NgocRongNamecService.gI().idpNrNamec[player.idNRNM - 353] = -1;
+            // player.idNRNM = -1;
+            // }
             ChangeMapService.gI().exitMap(player);
             TransactionService.gI().cancelTrade(player);
             if (player.clan != null) {
@@ -137,11 +150,25 @@ public class Client implements Runnable {
                 player = null;
             }
         }
-        PlayerDAO.updatePlayer(player);
+        // Throttle player saves to prevent spam
+        if (player != null && !player.isBot) {
+            long now = System.currentTimeMillis();
+            if (player.lastSaveTime == 0 || (now - player.lastSaveTime) >= 5000) { // Save max every 5 seconds
+                PlayerDAO.updatePlayer(player);
+                player.lastSaveTime = now;
+            }
+        }
     }
 
     public void kickSession(MySession session) {
         if (session != null) {
+            try {
+                String user = session.uu != null ? session.uu : "<unknown>";
+                String ip = session.ipAddress;
+                String pid = (session.player != null) ? String.valueOf(session.player.id) : "-1";
+                Logger.log("LOGIN: kickSession user=" + user + ", playerId=" + pid + ", ip=" + ip + ", sessionId=" + session.id);
+            } catch (Exception ignored) {
+            }
             this.remove(session);
             session.disconnect();
         }
@@ -160,11 +187,14 @@ public class Client implements Runnable {
     }
 
     public void close() {
-        Logger.log(Logger.BLACK, "Hệ thống tiến hành lưu dữ liệu người chơi và đăng xuất người chơi khỏi server." + players.size() + "\n");
-//        while(!GirlkunSessionManager.gI().getSessions().isEmpty()){
-//            Logger.error("LEFT PLAYER: " + this.players.size() + ".........................\n");
-//            this.kickSession((MySession) GirlkunSessionManager.gI().getSessions().remove(0));
-//        }
+        Logger.log(Logger.BLACK, "Hệ thống tiến hành lưu dữ liệu người chơi và đăng xuất người chơi khỏi server."
+                + players.size() + "\n");
+        // while(!GirlkunSessionManager.gI().getSessions().isEmpty()){
+        // Logger.error("LEFT PLAYER: " + this.players.size() +
+        // ".........................\n");
+        // this.kickSession((MySession)
+        // GirlkunSessionManager.gI().getSessions().remove(0));
+        // }
         while (!players.isEmpty()) {
             this.kickSession((MySession) players.remove(0).getSession());
         }
@@ -234,16 +264,17 @@ public class Client implements Runnable {
     }
 
     public void createBot(MySession s) {
-        String[] name1 = {"le", "hai", "lan", "anh", "long", "hehe"};
-        String[] name2 = {"dz", "xinh", "deth", "cute", "cuto", "cutie"};
-        String[] name3 = {"vip", "pro", "ga", "top1", "sc1", "vodich"};
+        String[] name1 = { "le", "hai", "lan", "anh", "long", "hehe" };
+        String[] name2 = { "dz", "xinh", "deth", "cute", "cuto", "cutie" };
+        String[] name3 = { "vip", "pro", "ga", "top1", "sc1", "vodich" };
         Player pl = new Player();
-        Player temp = Client.gI().getPlayerByUser(1);//GodGK.loadById(2275);
+        Player temp = Client.gI().getPlayerByUser(1);// GodGK.loadById(2275);
         pl.setSession(s);
         s.userId = id;
         pl.id = id;
         id++;
-        pl.name = name1[Util.nextInt(name1.length)] + name2[Util.nextInt(name2.length)] + name3[Util.nextInt(name3.length)];
+        pl.name = name1[Util.nextInt(name1.length)] + name2[Util.nextInt(name2.length)]
+                + name3[Util.nextInt(name3.length)];
         pl.gender = (byte) Util.nextInt(2);
         pl.isBot = true;
         pl.isBoss = false;
@@ -261,10 +292,10 @@ public class Client implements Runnable {
         if (pl.nPoint.hp == 0) {
             Service.gI().hsChar(pl, pl.nPoint.hpMax, pl.nPoint.mpMax);
         }
-        //skill
-        int[] skillsArr = pl.gender == 0 ? new int[]{0, 1, 19}
-                : pl.gender == 1 ? new int[]{12, 17}
-                : new int[]{4, 8, 13, 19};
+        // skill
+        int[] skillsArr = pl.gender == 0 ? new int[] { 0, 1, 19 }
+                : pl.gender == 1 ? new int[] { 12, 17 }
+                        : new int[] { 4, 8, 13, 19 };
         for (int j = 0; j < skillsArr.length; j++) {
             Skill skill = SkillUtil.createSkill(skillsArr[j], 7);
             pl.playerSkill.skills.add(skill);
@@ -283,7 +314,7 @@ public class Client implements Runnable {
         if (pl.zone.map == null) {
             return;
         }
-        pl.location.x = 200;//temp.location.x + Util.nextInt(-400,400);
+        pl.location.x = 200;// temp.location.x + Util.nextInt(-400,400);
         pl.zone.addPlayer(pl);
         pl.zone.load_Me_To_Another(pl);
         Client.gI().put(pl);

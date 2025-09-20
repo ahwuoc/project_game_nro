@@ -21,6 +21,7 @@ import Dragon.services.Service;
 import Dragon.services.func.ChangeMapService;
 import Dragon.utils.Logger;
 import Dragon.utils.Util;
+import Dragon.server.netty.NettySession;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,7 +38,7 @@ public class MySession extends Session {
     public boolean connected;
     public boolean sentKey;
 
-    public static final byte[] KEYS = {0};
+    public static final byte[] KEYS = { 0 };
     public byte curR, curW;
 
     public String ipAddress;
@@ -88,10 +89,17 @@ public class MySession extends Session {
     public boolean isRIcon;
     public int tongnap;
 
+    // Bridge to Netty
+    private transient NettySession nettySession;
+
     public MySession(Socket socket) {
         super(socket);
         ipAddress = socket.getInetAddress().getHostAddress();
         this.isRIcon = false;
+    }
+
+    public void setNettySession(NettySession nettySession) {
+        this.nettySession = nettySession;
     }
 
     public void initItemsReward() {
@@ -132,6 +140,28 @@ public class MySession extends Session {
         this.startSend();
     }
 
+    @Override
+    public void sendMessage(Message msg) {
+        // If running under Netty, forward through Netty channel to avoid legacy socket path
+        if (this.nettySession != null) {
+            try {
+                this.nettySession.sendMessage(msg);
+            } catch (Exception e) {
+                // fallback to legacy if needed
+                try {
+                    super.sendMessage(msg);
+                } catch (Exception ignored) {
+                }
+            }
+        } else {
+            try {
+                super.sendMessage(msg);
+            } catch (Exception e) {
+                // swallow to keep behavior similar to existing code
+            }
+        }
+    }
+
     public void sendSessionKey() {
         Message msg = new Message(-27);
         try {
@@ -149,12 +179,15 @@ public class MySession extends Session {
     }
 
     public void login(String username, String password) {
+        // Trace login attempt
+        Logger.log("LOGIN: attempt user=" + username + ", ip=" + this.ipAddress + ", sessionId=" + this.id);
         AntiLogin al = ANTILOGIN.get(this.ipAddress);
         if (al == null) {
             al = new AntiLogin();
             ANTILOGIN.put(this.ipAddress, al);
         }
         if (!al.canLogin()) {
+            Logger.log("LOGIN: blocked by AntiLogin user=" + username + ", ip=" + this.ipAddress);
             Service.gI().sendThongBaoOK(this, al.getNotifyCannotLogin());
             return;
         }
@@ -191,6 +224,7 @@ public class MySession extends Session {
 
                 player = GodGK.login(this, al);
                 if (player != null) {
+                    Logger.log("LOGIN: success user=" + username + ", playerId=" + player.id + ", ip=" + this.ipAddress + ", sessionId=" + this.id);
                     smallVersion.send(this);
                     Service.gI().sendMessage(this, -93, "1630679752231_-93_r");
                     this.timeWait = 1;
@@ -206,14 +240,32 @@ public class MySession extends Session {
                     }
 
                     player.setSession(this);
+
+                    // Check if player is already online BEFORE adding to Client
+                    // Use userId instead of username to ensure correct match even if nhân vật (player.name) khác username
+                    Player existingPlayer = Client.gI().getPlayerByUser(this.userId);
+                    if (existingPlayer != null) {
+                        Logger.log("LOGIN: userId=" + this.userId + " đã online, tiến hành kick session cũ (playerName=" + existingPlayer.name + ")");
+                        Client.gI().kickSession(existingPlayer.getSession());
+                        // Wait a bit for cleanup
+                        try {
+                            Thread.sleep(200);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+
                     Client.gI().put(player);
                     this.player = player;
                     DataGame.sendVersionGame(this);
                     DataGame.sendDataItemBG(this);
                     Controller.getInstance().sendInfo(this);
-                    Service.gI().sendThongBao(player, "|30|Chào Bạn Đến Với NROEvils");
+                    Service.gI().sendThongBao(player, "|30|Chào Bạn Đến Với Ahwuuocdz");
+                } else {
+                    Logger.log("LOGIN: failed user=" + username + ", ip=" + this.ipAddress + ", sessionId=" + this.id);
                 }
             } catch (Exception e) {
+                Logger.logException(MySession.class, e, "LOGIN: exception user=" + username + ", ip=" + this.ipAddress + ", sessionId=" + this.id);
 
                 if (player != null) {
                     player.dispose();
