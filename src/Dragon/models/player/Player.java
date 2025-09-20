@@ -106,7 +106,7 @@ public class Player {
     public boolean trangthai = false;
 
     public int ChuyenSinh;
-    public long[] DauLaDaiLuc = new long[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    public long[] DauLaDaiLuc = new long[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     public long Exp_Tu_Ma = 0;
     public int Ma_Hoa = 0;
     public long BktLasttimeMaHoa;
@@ -116,7 +116,7 @@ public class Player {
     public int Captutien = 0;
     public long Exptutien = 0;
     public int Ma_cot;
-    public long[] TUTIEN = new long[]{0, 0, 0};
+    public long[] TUTIEN = new long[] { 0, 0, 0 };
     public double dametong = 0;
     public String Hppl = "\n";
     public boolean resetdame = false;
@@ -263,10 +263,10 @@ public class Player {
     public int goldChallenge;
     public boolean bdkb_isJoinBdkb;
     public int rateCauCa;
-    // public CauCa cauca;
     public int data_task;
     public List<Integer> idEffChar = new ArrayList<>();
     public int rateModifier;
+    public boolean allowFullMapAccess = true;
 
     public Player() {
         lastTimeUseOption = System.currentTimeMillis();
@@ -374,7 +374,7 @@ public class Player {
                                 }
                                 Service.gI().sendThongBao(this,
                                         "Bạn đã thăng cảnh giới thất bại và bị mất Exp tu tiên, cảnh giới bạn vẫn ở: "
-                                        + this.CapBacTuTien(Util.Ahwuocdz(this.TUTIEN[1])));
+                                                + this.CapBacTuTien(Util.Ahwuocdz(this.TUTIEN[1])));
                                 this.setDie(this);
                             }
                         }
@@ -614,22 +614,22 @@ public class Player {
      * {867, 878, 869}: ht c2 xayda
      */
     private static final short[][] idOutfitFusion = {
-        /* 0 */{380, 381, 382}, // luong long
-        /* 1 */ {383, 384, 385}, // porata
-        /* 2 */ {391, 392, 393}, // hop the chung namec
-        /* 3 */ {870, 871, 872}, // trai dat c2
-        /* 4 */ {873, 874, 875}, // namec c2
-        /* 5 */ {867, 868, 869}, // xayda c2
-        //
-        /* 6 */ {1264, 1265, 1266}, // td 3
-        /* 7 */ {1270, 1271, 1272}, // nm 3
-        /* 8 */ {1267, 1268, 1269}, // xd 3
-        //
-        /* 9 */ {2104, 2105, 2106}, // td 4
-        /* 10 */ {2101, 2102, 2103}, // nm 4
-        /* 11 */ {2098, 2099, 2100}, // xd 4
-        //
-        /* 12 */ {1738, 1741, 1742}
+            /* 0 */{ 380, 381, 382 }, // luong long
+            /* 1 */ { 383, 384, 385 }, // porata
+            /* 2 */ { 391, 392, 393 }, // hop the chung namec
+            /* 3 */ { 870, 871, 872 }, // trai dat c2
+            /* 4 */ { 873, 874, 875 }, // namec c2
+            /* 5 */ { 867, 868, 869 }, // xayda c2
+            //
+            /* 6 */ { 1264, 1265, 1266 }, // td 3
+            /* 7 */ { 1270, 1271, 1272 }, // nm 3
+            /* 8 */ { 1267, 1268, 1269 }, // xd 3
+            //
+            /* 9 */ { 2104, 2105, 2106 }, // td 4
+            /* 10 */ { 2101, 2102, 2103 }, // nm 4
+            /* 11 */ { 2098, 2099, 2100 }, // xd 4
+            //
+            /* 12 */ { 1738, 1741, 1742 }
     };
 
     private boolean hasSentMysteryNotification = false;
@@ -695,26 +695,26 @@ public class Player {
                 && levelAo >= 8 && levelQuan >= 8 && levelGang >= 8 && levelGiay >= 8 && levelNhan >= 8) {
             return 8;
         } // else if (optionLevelAo != null && optionLevelQuan != null && optionLevelGang
-        // != null && optionLevelGiay != null && optionLevelNhan != null
-        // && levelAo >= 7 && levelQuan >= 7 && levelGang >= 7 && levelGiay >= 7 &&
-        // levelNhan >= 7) {
-        // return 7;
-        // } else if (optionLevelAo != null && optionLevelQuan != null &&
-        // optionLevelGang != null && optionLevelGiay != null && optionLevelNhan != null
-        // && levelAo >= 6 && levelQuan >= 6 && levelGang >= 6 && levelGiay >= 6 &&
-        // levelNhan >= 6) {
-        // return 6;
-        // } else if (optionLevelAo != null && optionLevelQuan != null &&
-        // optionLevelGang != null && optionLevelGiay != null && optionLevelNhan != null
-        // && levelAo >= 5 && levelQuan >= 5 && levelGang >= 5 && levelGiay >= 5 &&
-        // levelNhan >= 5) {
-        // return 5;
-        // } else if (optionLevelAo != null && optionLevelQuan != null &&
-        // optionLevelGang != null && optionLevelGiay != null && optionLevelNhan != null
-        // && levelAo >= 4 && levelQuan >= 4 && levelGang >= 4 && levelGiay >= 4 &&
-        // levelNhan >= 4) {
-        // return 4;
-        // }
+          // != null && optionLevelGiay != null && optionLevelNhan != null
+          // && levelAo >= 7 && levelQuan >= 7 && levelGang >= 7 && levelGiay >= 7 &&
+          // levelNhan >= 7) {
+          // return 7;
+          // } else if (optionLevelAo != null && optionLevelQuan != null &&
+          // optionLevelGang != null && optionLevelGiay != null && optionLevelNhan != null
+          // && levelAo >= 6 && levelQuan >= 6 && levelGang >= 6 && levelGiay >= 6 &&
+          // levelNhan >= 6) {
+          // return 6;
+          // } else if (optionLevelAo != null && optionLevelQuan != null &&
+          // optionLevelGang != null && optionLevelGiay != null && optionLevelNhan != null
+          // && levelAo >= 5 && levelQuan >= 5 && levelGang >= 5 && levelGiay >= 5 &&
+          // levelNhan >= 5) {
+          // return 5;
+          // } else if (optionLevelAo != null && optionLevelQuan != null &&
+          // optionLevelGang != null && optionLevelGiay != null && optionLevelNhan != null
+          // && levelAo >= 4 && levelQuan >= 4 && levelGang >= 4 && levelGiay >= 4 &&
+          // levelNhan >= 4) {
+          // return 4;
+          // }
         else {
             return -1;
         }

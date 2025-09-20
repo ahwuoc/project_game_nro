@@ -17,11 +17,9 @@ public class TaskCache {
 
     private static TaskCache instance;
 
-    // Cache maps - Key: "taskMainId_taskSubId"
     private Map<String, List<TaskRequirement>> requirementsCache = new ConcurrentHashMap<>();
     private Map<String, List<TaskReward>> rewardsCache = new ConcurrentHashMap<>();
 
-    // Cache status
     private boolean isInitialized = false;
     private long lastRefreshTime = 0;
 
@@ -31,27 +29,17 @@ public class TaskCache {
         }
         return instance;
     }
-
-    /**
-     * Initialize cache - Load tất cả task data từ database vào memory
-     */
+ 
     public void initializeCache() {
         Logger.log("TaskCache: Starting cache initialization...");
 
         try {
             loadAllTaskRequirements();
             loadAllTaskRewards();
-
             isInitialized = true;
             lastRefreshTime = System.currentTimeMillis();
-
-            Logger.log("TaskCache: Cache initialized successfully!");
-            Logger.log("TaskCache: Loaded " + requirementsCache.size() + " requirement groups");
-            Logger.log("TaskCache: Loaded " + rewardsCache.size() + " reward groups");
-
         } catch (Exception e) {
             Logger.logException(TaskCache.class, e);
-            Logger.log("TaskCache: Failed to initialize cache!");
         }
     }
 
@@ -82,15 +70,10 @@ public class TaskCache {
                 String key = req.taskMainId + "_" + req.taskSubId;
                 tempRequirements.computeIfAbsent(key, k -> new ArrayList<>()).add(req);
                 reqCount++;
-
-                Logger.log("TaskCache: Loaded requirement: " + req.requirementType +
-                        " target=" + req.targetId + " count=" + req.targetCount +
-                        " for task " + req.taskMainId + "_" + req.taskSubId);
             }
 
             requirementsCache.clear();
             requirementsCache.putAll(tempRequirements);
-            Logger.log("TaskCache: Successfully loaded " + reqCount + " task requirements");
 
             rs.close();
             ps.close();
@@ -136,10 +119,6 @@ public class TaskCache {
                 String key = reward.taskMainId + "_" + reward.taskSubId;
                 tempRewards.computeIfAbsent(key, k -> new ArrayList<>()).add(reward);
                 rewardCount++;
-
-                Logger.log("TaskCache: Loaded reward: " + reward.rewardType +
-                        " id=" + reward.rewardId + " quantity=" + reward.rewardQuantity +
-                        " for task " + reward.taskMainId + "_" + reward.taskSubId);
             }
 
             rewardsCache.clear();
@@ -167,14 +146,12 @@ public class TaskCache {
      */
     public List<TaskRequirement> getTaskRequirements(int taskMainId, int taskSubId, String requirementType) {
         if (!isInitialized) {
-            Logger.log("TaskCache: Cache not initialized, returning empty list");
             return new ArrayList<>();
         }
 
         String key = taskMainId + "_" + taskSubId;
         List<TaskRequirement> allReqs = requirementsCache.getOrDefault(key, new ArrayList<>());
 
-        // Filter by requirement type if specified
         if (requirementType != null) {
             List<TaskRequirement> filteredReqs = new ArrayList<>();
             for (TaskRequirement req : allReqs) {

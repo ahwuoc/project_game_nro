@@ -18,12 +18,8 @@ import Dragon.models.map.BDKB.BanDoKhoBau;
 import Dragon.models.map.Zone;
 import Dragon.models.map.challenge.MartialCongressManager;
 import Dragon.models.map.vodai.VoDaiManager;
-import Dragon.models.npc.DuaHau;
-//import Dragon.models.map.challenge.MartialCongressManager;
-//import Dragon.models.matches.pvp.DaiHoiVoThuat;
 import Dragon.models.player.Player;
 import Dragon.models.sieuhang.SieuHangManager;
-import Dragon.models.player.Playerao;
 import Dragon.thuongnhanthanbi.Dungeon_Manager;
 import com.girlkun.network.session.ISession;
 import com.girlkun.network.example.MessageSendCollect;
@@ -34,14 +30,10 @@ import static Dragon.server.Maintenance.isBaoTri;
 import Dragon.server.io.MyKeyHandler;
 import Dragon.server.io.MySession;
 import Dragon.services.*;
-import Dragon.services.func.ChonAiDay;
-import Dragon.services.func.TopService;
 import Dragon.models.npc.NpcFactory;
 import Dragon.utils.Logger;
 import Dragon.utils.TimeUtil;
 import Dragon.utils.Util;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
@@ -109,7 +101,6 @@ public class ServerManager {
                 Logger.log(Logger.YELLOW, "UI disabled or headless environment detected. Skipping Swing menu.\n");
             }
         } catch (Throwable t) {
-            // Avoid aborting the server if AWT/Swing is unavailable
             Logger.log(Logger.RED, "Failed to start Swing menu (ignored): " + t.getClass().getSimpleName() + " - "
                     + t.getMessage() + "\n");
         }
@@ -409,6 +400,23 @@ public class ServerManager {
                     } catch (Exception e) {
                         e.printStackTrace();
                         Dragon.utils.Logger.log("ServerManager: Failed to reload Gift Codes!");
+                    }
+                } else if (line.equals("gameloopstats")) {
+                    try {
+                        Dragon.utils.Logger.log("ServerManager: GameLoopManager Performance Stats:");
+                        Dragon.utils.Logger.log(GameLoopManager.getInstance().getPerformanceStats());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Dragon.utils.Logger.log("ServerManager: Failed to get GameLoop stats!");
+                    }
+                } else if (line.equals("forceupdatemaps")) {
+                    try {
+                        Dragon.utils.Logger.log("ServerManager: Force updating maps...");
+                        GameLoopManager.getInstance().forceUpdateMaps();
+                        Dragon.utils.Logger.log("ServerManager: Maps updated successfully!");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Dragon.utils.Logger.log("ServerManager: Failed to force update maps!");
                     }
                 }
             }

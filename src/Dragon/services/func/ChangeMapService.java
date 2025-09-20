@@ -754,11 +754,10 @@ public class ChangeMapService {
         if (zoneJoin.map.mapId == -1 || zoneJoin.map.mapId == -1) {
             return null;
         }
-        // Admin có thể vào tất cả map
-        if (player.isPet || player.isClone || player.isBoss || player.getSession() != null && player.isAdmin()) {
+        if (player.isPet || player.isClone || player.isBoss || player.getSession() != null && player.isAdmin()
+                || player.allowFullMapAccess) {
             return zoneJoin;
         }
-
         if (zoneJoin != null) {
             switch (zoneJoin.map.mapId) {
                 case 1: // đồi hoa cúc

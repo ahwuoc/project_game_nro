@@ -537,7 +537,8 @@ public class Util {
     }
 
     public static String removeAccent(String str) {
-        if (str == null) return null;
+        if (str == null)
+            return null;
         String normalized = Normalizer.normalize(str, Normalizer.Form.NFD);
         return normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
     }
@@ -870,7 +871,8 @@ public class Util {
 
     public static void showListTop(Player player, byte select) {
         try {
-            List<TOP> tops = tops = Manager.topSM;
+            // Sử dụng TopRankingService thay vì Manager.topSM
+            List<TOP> tops = Dragon.services.TopRankingService.getInstance().getTopSucManh();
 
             Message msg = new Message(-96);
             msg.writer().writeByte(0);

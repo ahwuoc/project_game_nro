@@ -26,7 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class Map implements Runnable {
+public class Map {
 
     public static final byte T_EMPTY = 0;
     public static final byte T_TOP = 2;
@@ -124,29 +124,26 @@ public class Map implements Runnable {
         }
     }
 
-    @Override
-    public void run() {
-        while (true) {
-            try {
-                long startTime = System.currentTimeMillis();
-
-                for (Zone zone : this.zones) {
-                    if (zone != null) {
-                        zone.update();
-                    }
+    /**
+     * Update method được gọi bởi GameLoopManager
+     * Không còn implement Runnable nữa
+     */
+    public void update() {
+        try {
+            for (Zone zone : this.zones) {
+                if (zone != null) {
+                    zone.update();
                 }
-
-                long elapsedTime = System.currentTimeMillis() - startTime;
-                long waitTime = 1000 - elapsedTime;
-                if (waitTime > 0) {
-                    Thread.sleep(waitTime);
-                }
-            } catch (InterruptedException e) {
-            } catch (ConcurrentModificationException e) {
-            } catch (ArrayIndexOutOfBoundsException e) {
-            } catch (NoSuchElementException e) {
-            } catch (Exception e) {
             }
+        } catch (ConcurrentModificationException e) {
+            // Ignore concurrent modification
+        } catch (ArrayIndexOutOfBoundsException e) {
+            // Ignore array bounds
+        } catch (NoSuchElementException e) {
+            // Ignore no such element
+        } catch (Exception e) {
+            // Log other exceptions
+            Dragon.utils.Logger.logException(Map.class, e);
         }
     }
 

@@ -66,14 +66,16 @@ CREATE TABLE task_requirements (
 ```sql
 CREATE TABLE task_rewards (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    task_main_id INT NOT NULL,                -- FK to task_main_template
-    task_sub_id INT NOT NULL,                 -- Sub task index (0,1,2...)
-    reward_type ENUM('ITEM', 'GOLD', 'EXP', 'RUBY', 'POWER_POINT') NOT NULL,
+    requirement_id INT NOT NULL,              -- FK to task_requirements(id)
+    reward_type ENUM('ITEM', 'GOLD', 'EXP', 'RUBY') NOT NULL,
     reward_id INT DEFAULT 0,                  -- item_id (nếu là item)
     reward_quantity BIGINT NOT NULL DEFAULT 1, -- Số lượng reward
     reward_description VARCHAR(200),          -- Mô tả reward
-    INDEX idx_task (task_main_id, task_sub_id),
-    INDEX idx_type (reward_type)
+    INDEX idx_requirement (requirement_id),
+    INDEX idx_type (reward_type),
+    CONSTRAINT fk_task_rewards_requirement
+        FOREIGN KEY (requirement_id) REFERENCES task_requirements(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
 );
 ```
 
@@ -165,9 +167,12 @@ INSERT INTO task_requirements (task_main_id, task_sub_id, requirement_type, targ
 INSERT INTO task_requirements (task_main_id, task_sub_id, requirement_type, target_id, target_count, map_restriction) VALUES
 (14, 2, 'KILL_MOB', 0, 5, '3');
 
--- Reward cho task 14_2
-INSERT INTO task_rewards (task_main_id, task_sub_id, reward_type, reward_id, reward_quantity, reward_description) VALUES
-(14, 2, 'EXP', 0, 1000, 'Hoàn thành nhiệm vụ giết Khỉ Bư');
+-- Reward cho task 14_2 (gắn vào bất kỳ requirement thuộc subtask 14_2)
+INSERT INTO task_rewards (requirement_id, reward_type, reward_id, reward_quantity, reward_description)
+SELECT id, 'EXP', 0, 1000, 'Hoàn thành nhiệm vụ giết Khỉ Bư'
+FROM task_requirements
+WHERE task_main_id = 14 AND task_sub_id = 2
+LIMIT 1;
 
 -- Sub task 3: Quay về báo cáo Rock Rock
 INSERT INTO task_requirements (task_main_id, task_sub_id, requirement_type, target_id, target_count, map_restriction) VALUES
@@ -180,8 +185,11 @@ INSERT INTO task_requirements (task_main_id, task_sub_id, requirement_type, targ
 INSERT INTO task_requirements (task_main_id, task_sub_id, requirement_type, target_id, target_count, map_restriction) VALUES
 (15, 0, 'TALK_NPC', 105, 1, '2');
 
-INSERT INTO task_rewards (task_main_id, task_sub_id, reward_type, reward_id, reward_quantity, reward_description) VALUES
-(15, 0, 'EXP', 0, 500, 'Thưởng gặp NPC Hướng Dẫn');
+INSERT INTO task_rewards (requirement_id, reward_type, reward_id, reward_quantity, reward_description)
+SELECT id, 'EXP', 0, 500, 'Thưởng gặp NPC Hướng Dẫn'
+FROM task_requirements
+WHERE task_main_id = 15 AND task_sub_id = 0
+LIMIT 1;
 
 -- Sub task 1-6: Gặp các NPCs khác
 INSERT INTO task_requirements (task_main_id, task_sub_id, requirement_type, target_id, target_count, map_restriction) VALUES
@@ -203,9 +211,17 @@ INSERT INTO task_requirements (task_main_id, task_sub_id, requirement_type, targ
 INSERT INTO task_requirements (task_main_id, task_sub_id, requirement_type, target_id, target_count, map_restriction) VALUES
 (16, 1, 'KILL_MOB', 1, 50, '4');
 
-INSERT INTO task_rewards (task_main_id, task_sub_id, reward_type, reward_id, reward_quantity, reward_description) VALUES
-(16, 1, 'ITEM', 457, 5, 'Thưởng 5 Thỏi Vàng'),
-(16, 1, 'GOLD', 0, 50000, 'Thưởng 50,000 vàng');
+INSERT INTO task_rewards (requirement_id, reward_type, reward_id, reward_quantity, reward_description)
+SELECT id, 'ITEM', 457, 5, 'Thưởng 5 Thỏi Vàng'
+FROM task_requirements
+WHERE task_main_id = 16 AND task_sub_id = 1
+LIMIT 1;
+
+INSERT INTO task_rewards (requirement_id, reward_type, reward_id, reward_quantity, reward_description)
+SELECT id, 'GOLD', 0, 50000, 'Thưởng 50,000 vàng'
+FROM task_requirements
+WHERE task_main_id = 16 AND task_sub_id = 1
+LIMIT 1;
 
 -- Sub task 2: Giết 100 Thay Ma ở map 4
 INSERT INTO task_requirements (task_main_id, task_sub_id, requirement_type, target_id, target_count, map_restriction) VALUES
@@ -247,7 +263,7 @@ TaskServiceNew: Task requirement matched - TaskRequirement{task=14_2, type=KILL_
 TaskServiceNew: Task progress 14_2: 4 + 1 = 5/5
 TaskServiceNew: Task completed! TaskRequirement{task=14_2, type=KILL_MOB, target=0, count=5, map=3}
 TaskServiceNew: Completing task 14_2 for player sdasd
-TaskServiceNew: Giving reward TaskReward{task=14_2, type=EXP, id=0, quantity=1000} to player sdasd
+TaskServiceNew: Giving reward TaskReward{task=14_2, type=EXP, quantity=1000} to player sdasd
 ```
 
 ---
@@ -390,7 +406,7 @@ TaskService.gI().checkDoneTaskKillMob(plAtt, this);            // Delegates to T
 - **Auto-refresh**: CLI commands để reload từ database
 
 ### Indexes
-- **idx_task**: Fast lookup theo task_main_id + task_sub_id
+- **idx_requirement**: Fast lookup theo requirement_id (JOIN sang requirements)
 - **idx_type**: Fast filter theo requirement_type
 - **idx_target**: Fast lookup theo target_id
 
@@ -400,5 +416,5 @@ TaskService.gI().checkDoneTaskKillMob(plAtt, this);            // Delegates to T
 
 - **Developer**: Ahwuocdz
 - **Date Created**: September 14, 2025
-- **Last Updated**: September 15, 2025
+- **Last Updated**: September 19, 2025
 - **Version**: 1.0.0

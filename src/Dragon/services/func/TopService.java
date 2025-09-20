@@ -1,35 +1,33 @@
 package Dragon.services.func;
 
-import com.girlkun.database.GirlkunDB;
-import Dragon.server.Manager;
+import Dragon.jdbc.daos.TopRankingCache;
 import Dragon.utils.Logger;
-import java.sql.Connection;
 
+/**
+ * TopService đã được tối ưu - không còn chạy background thread
+ * Thay vào đó sử dụng TopRankingCache để load on-demand
+ */
 public class TopService implements Runnable {
 
     @Override
     public void run() {
-        while (true) {
-            try {
-                Thread.sleep(1000);
-                if (Manager.timeRealTop + (5 * 60 * 1000) < System.currentTimeMillis()) {
-                    Manager.timeRealTop = System.currentTimeMillis();
-                    try (Connection con = GirlkunDB.getConnection()) {
-//                        Manager.topNV = Manager.realTop(Manager.queryTopNV, con);
-                        Manager.topSM = Manager.realTop(Manager.queryTopSM, con);
-//                        System.err.print(Manager.topSM.size());
-//                        Manager.topSK = Manager.realTop(Manager.queryTopSK, con);
-//                        Manager.topRUBY = Manager.realTop(Manager.queryTopRUBY, con);
-//                        Manager.topNHS = Manager.realTop(Manager.queryTopNHS, con);
-//                        Manager.topSieuHang = Manager.realTopSieuHang(con);
-                    } catch (Exception e) {
-                        Logger.error("Lỗi đọc top");
-                    }
-                }
-            } catch (Exception e) {
-                Logger.error("Lỗi đọc top");
-            }
-        }
+        // Service này giờ chỉ khởi tạo cache và dừng lại
+        // Không còn chạy background thread gây lag
+        Logger.log("TopService: Initializing TopRankingCache...");
+        TopRankingCache.getInstance();
+        Logger.log("TopService: TopRankingCache initialized. Background thread stopped.");
+
+        // Dừng thread này để không gây lag
+        return;
     }
 
+    /**
+     * Method để tương thích với code cũ
+     * 
+     * @deprecated Sử dụng TopRankingCache.getInstance().getTopRanking() thay thế
+     */
+    @Deprecated
+    public static void startBackgroundService() {
+        Logger.log("TopService: Background service is disabled to reduce lag. Use TopRankingCache instead.");
+    }
 }

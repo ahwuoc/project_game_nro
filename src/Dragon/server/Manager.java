@@ -220,15 +220,17 @@ public class Manager {
         Dragon.utils.Logger.log("Manager: Initializing Task Cache...");
         Dragon.jdbc.daos.TaskCache.getInstance().initializeCache();
 
+        Dragon.utils.Logger.log("Manager: Initializing Top Ranking Cache...");
+        Dragon.jdbc.daos.TopRankingCache.getInstance();
+
         NpcFactory.createNpcConMeo();
         Dragon.nam.TamBaoService.loadItem();
         Dragon.nam.GachaService.loadItem();
         NpcFactory.createNpcRongThieng();
         this.initMap();
 
-        TopService top = new TopService();
-        Thread thread = new Thread(top);
-        thread.start();
+        // TopService đã được tối ưu - không còn chạy background thread
+        Dragon.utils.Logger.log("Manager: TopService background thread disabled to reduce lag");
     }
 
     public boolean HoTroNhiemVu() {
@@ -258,9 +260,18 @@ public class Manager {
             MAPS.add(map);
             map.initMob(mapTemp.mobTemp, mapTemp.mobLevel, mapTemp.mobHp, mapTemp.mobX, mapTemp.mobY);
             map.initNpc(mapTemp.npcId, mapTemp.npcX, mapTemp.npcY);
-            new Thread(map, "Update map " + map.mapName).start();
-            ServerManager.gI().threadMap++;
+
+            // KHÔNG tạo thread riêng cho mỗi map nữa - sử dụng GameLoopManager
+            // new Thread(map, "Update map " + map.mapName).start();
+            // ServerManager.gI().threadMap++;
         }
+
+        // Khởi tạo GameLoopManager để update tất cả maps
+        Logger.log("Manager: Initializing GameLoopManager...");
+        GameLoopManager.getInstance().initialize();
+        GameLoopManager.getInstance().start();
+        Logger.log("Manager: GameLoopManager started - Maps will be updated by thread pool");
+
         Referee r = new Referee();
         r.initReferee();
         Referee1 vodai = new Referee1();
@@ -452,19 +463,6 @@ public class Manager {
 
             ps = con.prepareStatement("select * from dhvt_template");
             rs = ps.executeQuery();
-            // while (rs.next()) {
-            // DaiHoiVoThuat dhvt = new DaiHoiVoThuat();
-            // dhvt.NameCup = rs.getString(2);
-            // dhvt.Time = rs.getString(3).split("\n");
-            // dhvt.gem = rs.getInt(4);
-            // dhvt.gold = rs.getInt(5);
-            // dhvt.min_start = rs.getInt(6);
-            // dhvt.min_start_temp = rs.getInt(6);
-            // dhvt.min_limit = rs.getInt(7);
-            // LIST_DHVT.add(dhvt);
-            // }
-            // Logger.log(Logger.GREEN, "Load Đại Hội Võ Thuật thành công (" +
-            // LIST_DHVT.size() + ")\n");
 
             // load skill
             ps = con.prepareStatement("select * from skill_template order by nclass_id, slot");
